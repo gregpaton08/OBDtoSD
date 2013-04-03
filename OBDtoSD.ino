@@ -43,12 +43,13 @@ void loop() {
     while(Serial.available() == 0); 
     // seek to beginning of returned data
     while(false == Serial.find("4"));
-    delay(200);
+    //delay(200);
     OBDLog.print(millis() - startTime);
     OBDLog.print(", ");
     OBDLog.write('4');
-    while (Serial.available() > 0) {
+    while (true) {
       unsigned char c = Serial.read();
+      if (c == -1) continue;
       if (c == '\n' || c == '\r') break;
       OBDLog.write(c);
     }
