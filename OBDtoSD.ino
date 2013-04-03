@@ -37,20 +37,23 @@ void loop() {
   Serial.write("01 0C 1\r\n");
   
   while (true) {
-    OBDLog.println("---LOOP BEGIN---");
+    //OBDLog.println("---LOOP BEGIN---");
+    
+    // wait until serial data is available
     while(Serial.available() == 0); 
+    // seek to beginning of returned data
     while(false == Serial.find("4"));
     delay(200);
     OBDLog.print(millis() - startTime);
     OBDLog.print(", ");
-    Serial.print("4");
+    OBDLog.write('4');
     while (Serial.available() > 0) {
       unsigned char c = Serial.read();
       if (c == '\n' || c == '\r') break;
       OBDLog.write(c);
     }
     OBDLog.println("");
-    OBDLog.println("---LOOP END---");
+    //OBDLog.println("---LOOP END---");
     OBDLog.flush();
     break;
   }
