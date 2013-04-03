@@ -4,29 +4,32 @@
 File OBDLog;
 unsigned long startTime;
 
+#define SD_SS_PIN 4
+
 
 void setup() {
   Serial.begin(38400);
   
   // Set ss pin for SD Card
-  pinMode(4, OUTPUT);
-  if (false == SD.begin(4)) {
-    return;
-  }
-  
+  pinMode(SD_SS_PIN, OUTPUT);
+  if (false == SD.begin(SD_SS_PIN)) return;
+ 
   // determine file name
+  // file name must be 8 characters or less
   char filename[20];
   for (uint16_t index = 1; index < 65535; index++) {
-    sprintf(filename, "OBDLog%05d.txt", index);
+    sprintf(filename, "OBD%05d.csv", index);
     if (false == SD.exists(filename)) {
       break;
     }
   }
-  sprintf(filename, "OBDLog.txt");
+  
   OBDLog = SD.open(filename, FILE_WRITE);
   OBDLog.println("---START---");
   OBDLog.println("");
   OBDLog.println("");
+  
+  Serial.println("DONE");
    
   // wait a second
   delay(1000);
@@ -37,18 +40,15 @@ void setup() {
 
 
 void loop() {
+  return;
   // RPM
-  //logPID("01 0C");
   logPID(0x01, 0x0C);
   // Speed
-  //logPID("01 0D");
   logPID(0x01, 0x0D);
   // MAF
-  //logPID("01 10");
   logPID(0x01, 0x10);
-  // Throttle Position
-  //logPID("01 11");
-  logPID(0x01, 0x11);
+  // Fuel Level
+  logPID(0x01, 0x2F);
 }
 
 
@@ -81,6 +81,16 @@ void logPID(char *PID) {
 
 
 void logPID(byte mode, byte pid) {
+  // format PID to char array
+  byte strPidSize = 4;
+  char strPid[strPidSize];
+  String strPidtemp = String(pid, HEX);
+  strPidtemp.toUpperCase();
+  if (strPidtemp.length() == 1) {
+    strPidtemp = "0" + strPidtemp + " ";
+  }
+  strPidtemp.toCharArray(strPid, strPidSize);
+  
   // Query PID
   switch (mode) {
     case 0x01:
@@ -112,13 +122,19 @@ void logPID(byte mode, byte pid) {
   
   while (true) {
     // wait until serial data is available
-    while(Serial.available() == 0); 
-    // seek to beginning of returned data
-    while(false == Serial.find("4"));
-    // print time and '4' that was skipped by Serial.find()
+    while (Serial.available() == 0); 
+    // seek to line of returned data
+    while (false == Serial.find("4"));
+    // print time 
     OBDLog.print(millis() - startTime);
-    OBDLog.print(", ");
-    OBDLog.write('4');
+    OBDLog.print(",");
+    //OBDLog.write('4');
+    OBDLog.print('0');
+    OBDLog.print(mode);
+    OBDLog.print(strPid);
+    OBDLog.print(",");
+    // seek to returned hex data
+    while (false == Serial.find(strPid));
     // loop until new line character found
     while (true) {
       unsigned char c = Serial.read();
