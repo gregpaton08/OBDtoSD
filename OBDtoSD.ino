@@ -7,12 +7,21 @@ unsigned long startTime;
 
 OBDLib obd;
 
-#define SD_SS_PIN 4
+#define SD_SS 4
+#define BLE_REQN 9
+#define MEGA_SS 53
 
 
 void setup() {
   // set BAUD rate
   Serial.begin(38400);
+  
+  pinMode(MEGA_SS, OUTPUT);
+  digitalWrite(MEGA_SS, HIGH);
+  
+  // BLE
+  pinMode(BLE_REQN, OUTPUT);
+  digitalWrite(BLE_REQN, HIGH);
   
   SDInit(); 
   
@@ -36,16 +45,16 @@ void loop() {
   logMode01PID(0x0D);
   // MAF
   logMode01PID(0x10);
-  // Fuel Level
-  // not supported in my car
-  //logMode01PID(0x2F);
+  
+  // flush data to SD card
+  OBDLog.flush();
 }
 
 
 void SDInit() {
-  // Set ss pin for SD Card
-  pinMode(SD_SS_PIN, OUTPUT);
-  if (false == SD.begin(SD_SS_PIN)) return;
+  // Set slave select pin for SD Card
+  pinMode(SD_SS, OUTPUT);
+  if (false == SD.begin(SD_SS)) return;
  
   // Determine file name
   // File name must be 8 characters or less
@@ -74,7 +83,6 @@ void logMode01PID(byte pid) {
   // Query PID
   obd.sendCMD(0x01, pid);
   
-  
   uint8_t strPidSize = 4;
   char strPid[strPidSize];
   String strPidtemp = String(pid, HEX);
@@ -90,8 +98,10 @@ void logMode01PID(byte pid) {
   //  return;
   // Print time 
   OBDLog.print(millis() - startTime);
-  OBDLog.print(",0");
-  OBDLog.print(0x01, HEX);
+  OBDLog.print(",");
+  //OBDLog.print(0x01, HEX);
+  if (pid < 0x10)
+    OBDLog.print('0');
   OBDLog.print(pid, HEX);
   OBDLog.print(",");
   OBDLog.flush();
@@ -108,7 +118,4 @@ void logMode01PID(byte pid) {
   // print result to 2 decimal places
   OBDLog.println(obd.pidToDec(pid, pidRes), 2);
   //OBDLog.println("");
- 
-  // flush data to SD card
-  OBDLog.flush();
 }
